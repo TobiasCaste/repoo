@@ -78,6 +78,40 @@ public class mediciones_repository {
     }
 
 
+    public String info_average_humidity_temperatures(LocalDateTime from , LocalDateTime to, String type){
+
+        // Conversión de LocalDateTime a Date (MongoDB usa Date)
+        Date fromDate = Date.from(from.atZone(ZoneId.systemDefault()).toInstant());
+        Date toDate = Date.from(to.atZone(ZoneId.systemDefault()).toInstant());
+
+        // Pipeline de agregación
+        List<Bson> pipeline = Arrays.asList(
+
+                Aggregates.match(Filters.and(
+                        Filters.gte("fecha_hora", fromDate), // ← mismo campo que en tu consulta Mongo
+                        Filters.lte("fecha_hora", toDate)
+                )),
+                Aggregates.group(
+                        new Document("_id", "$" + type),  // agrupa según "pais", "ciudad", etc.
+                        Accumulators.avg("humedad_promedio", "$humedad"),
+                        Accumulators.avg("temperatura_promedio", "$temperatura")
+                )
+
+        );
+
+        // Ejecutar la agregación
+        AggregateIterable<Document> resultados = collection.aggregate(pipeline);
+
+        // Mostrar resultados
+        for (Document doc : resultados) {
+            System.out.println(doc.toJson());
+        }
+
+
+        return "ok";
+    }
+
+
 
 
 
