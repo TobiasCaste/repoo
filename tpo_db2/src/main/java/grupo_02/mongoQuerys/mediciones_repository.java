@@ -13,6 +13,7 @@ import org.bson.conversions.Bson;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -44,32 +45,48 @@ public class mediciones_repository {
 
         }
 
-    public String info_max_and_min_temperatures_humidity(LocalDateTime from, LocalDateTime to, String type) {
+    public String info_max_and_min_temperatures_humidity(
+            LocalDateTime from,
+            LocalDateTime to,
+            ArrayList<String> groupFields,
+            ArrayList<String> filterFields,
+            ArrayList<String> filterValues) {
 
         // Conversión de LocalDateTime a Date (MongoDB usa Date)
         Date fromDate = Date.from(from.atZone(ZoneId.systemDefault()).toInstant());
         Date toDate = Date.from(to.atZone(ZoneId.systemDefault()).toInstant());
 
+        // Construir los campos de agrupación (_id)
+        Document groupId = new Document();
+        for (String field : groupFields) {
+            groupId.append(field, "$" + field);
+        }
+
+        // Construir condiciones del match
+        List<Bson> condiciones = new ArrayList<>();
+        condiciones.add(Filters.gte("fecha_hora", fromDate));
+        condiciones.add(Filters.lte("fecha_hora", toDate));
+
+        // Agregar filtros dinámicos
+        for (int i = 0; i < filterFields.size(); i++) {
+            condiciones.add(Filters.eq(filterFields.get(i), filterValues.get(i)));
+        }
+
         // Pipeline de agregación
         List<Bson> pipeline = Arrays.asList(
-                Aggregates.match(Filters.and(
-                        Filters.gte("fecha_hora", fromDate), // ← mismo campo que en tu consulta Mongo
-                        Filters.lte("fecha_hora", toDate)
-                )),
+                Aggregates.match(Filters.and(condiciones)),
                 Aggregates.group(
-                        new Document("_id", "$" + type),  // agrupa según "pais", "ciudad", etc.
+                        groupId,
                         Accumulators.max("maxima_humedad", "$humedad"),
                         Accumulators.min("minima_humedad", "$humedad"),
                         Accumulators.max("temperatura_maxima", "$temperatura"),
                         Accumulators.min("temperatura_minima", "$temperatura")
                 )
-
         );
 
         // Ejecutar la agregación
         AggregateIterable<Document> resultados = collection.aggregate(pipeline);
 
-        // Mostrar resultados
         for (Document doc : resultados) {
             System.out.println(doc.toJson());
         }
@@ -78,11 +95,17 @@ public class mediciones_repository {
     }
 
 
-    public String info_average_humidity_temperatures(LocalDateTime from , LocalDateTime to, String type){
+    public String info_average_humidity_temperatures(LocalDateTime from , LocalDateTime to, ArrayList<String> types){
 
         // Conversión de LocalDateTime a Date (MongoDB usa Date)
         Date fromDate = Date.from(from.atZone(ZoneId.systemDefault()).toInstant());
         Date toDate = Date.from(to.atZone(ZoneId.systemDefault()).toInstant());
+
+        Document fields=new Document();
+        for (String i: types){
+            fields.append(i, "$" + i);
+        }
+
 
         // Pipeline de agregación
         List<Bson> pipeline = Arrays.asList(
@@ -92,7 +115,7 @@ public class mediciones_repository {
                         Filters.lte("fecha_hora", toDate)
                 )),
                 Aggregates.group(
-                        new Document("_id", "$" + type),  // agrupa según "pais", "ciudad", etc.
+                        new Document("_id",fields),  // agrupa según "pais", "ciudad", etc.
                         Accumulators.avg("humedad_promedio", "$humedad"),
                         Accumulators.avg("temperatura_promedio", "$temperatura")
                 )
@@ -110,8 +133,6 @@ public class mediciones_repository {
 
         return "ok";
     }
-
-
 
 
 
