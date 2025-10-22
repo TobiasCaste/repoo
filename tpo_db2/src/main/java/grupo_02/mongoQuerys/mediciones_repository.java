@@ -62,19 +62,19 @@ public class mediciones_repository {
             groupId.append(field, "$" + field);
         }
 
-        // Construir condiciones del match
-        List<Bson> condiciones = new ArrayList<>();
-        condiciones.add(Filters.gte("fecha_hora", fromDate));
-        condiciones.add(Filters.lte("fecha_hora", toDate));
+        // Construir conditions del match
+        List<Bson> conditions = new ArrayList<>();
+        conditions.add(Filters.gte("fecha_hora", fromDate));
+        conditions.add(Filters.lte("fecha_hora", toDate));
 
         // Agregar filtros dinámicos
         for (int i = 0; i < filterFields.size(); i++) {
-            condiciones.add(Filters.eq(filterFields.get(i), filterValues.get(i)));
+            conditions.add(Filters.eq(filterFields.get(i), filterValues.get(i)));
         }
 
         // Pipeline de agregación
         List<Bson> pipeline = Arrays.asList(
-                Aggregates.match(Filters.and(condiciones)),
+                Aggregates.match(Filters.and(conditions)),
                 Aggregates.group(
                         groupId,
                         Accumulators.max("maxima_humedad", "$humedad"),
@@ -95,11 +95,21 @@ public class mediciones_repository {
     }
 
 
-    public String info_average_humidity_temperatures(LocalDateTime from , LocalDateTime to, ArrayList<String> types){
+    public String info_average_humidity_temperatures(LocalDateTime from , LocalDateTime to, ArrayList<String> types, ArrayList<String> filterFields, ArrayList<String> filterValues){
 
         // Conversión de LocalDateTime a Date (MongoDB usa Date)
+        
         Date fromDate = Date.from(from.atZone(ZoneId.systemDefault()).toInstant());
         Date toDate = Date.from(to.atZone(ZoneId.systemDefault()).toInstant());
+
+        List<Bson> conditions = new ArrayList<>();
+        conditions.add(Filters.gte("fecha_hora", fromDate));
+        conditions.add(Filters.lte("fecha_hora", toDate));
+
+        for (int i = 0; i < filterFields.size(); i++) {
+            conditions.add(Filters.eq(filterFields.get(i), filterValues.get(i)));
+        }
+
 
         Document fields=new Document();
         for (String i: types){
@@ -111,8 +121,7 @@ public class mediciones_repository {
         List<Bson> pipeline = Arrays.asList(
 
                 Aggregates.match(Filters.and(
-                        Filters.gte("fecha_hora", fromDate), // ← mismo campo que en tu consulta Mongo
-                        Filters.lte("fecha_hora", toDate)
+                        conditions
                 )),
                 Aggregates.group(
                         new Document("_id",fields),  // agrupa según "pais", "ciudad", etc.
@@ -132,6 +141,55 @@ public class mediciones_repository {
 
 
         return "ok";
+    }
+
+    public String temperature_alert(LocalDateTime from ,LocalDateTime to ,ArrayList<String> filterFields, ArrayList<String> filterValues,ArrayList<String> ranges,ArrayList<Integer> rangeValues ){
+
+            Date fromDate = Date.from(from.atZone(ZoneId.systemDefault()).toInstant());
+            Date toDate = Date.from(to.atZone(ZoneId.systemDefault()).toInstant());
+
+            List<Bson> conditions = new ArrayList<>();
+            conditions.add(Filters.gte("fecha_hora", fromDate));
+            conditions.add(Filters.lte("fecha_hora", toDate));
+
+
+
+            for (int i = 0; i < filterFields.size(); i++) {
+                conditions.add(Filters.eq(filterFields.get(i), filterValues.get(i)));
+            }
+
+            if(ranges.size()==2){
+
+                conditions.add(Filters.gte(ranges.get(0),rangeValues.get(0)));
+                conditions.add(Filters.lte(ranges.get(1),rangeValues.get(1)));
+            }
+            else{
+                conditions.add(Filters.gte(ranges.get(0),rangeValues.get(1)));
+                conditions.add(Filters.lte(ranges.get(1),rangeValues.get(1)));
+                conditions.add(Filters.gte(ranges.get(2),rangeValues.get(3)));
+                conditions.add(Filters.lte(ranges.get(3),rangeValues.get(3)));
+
+            }
+
+            
+
+            // Pipeline de agregación
+            List<Bson> pipeline = Arrays.asList(
+
+                    Aggregates.match(Filters.and(
+                            conditions
+                    ))
+
+            );
+
+            // Ejecutar la agregación
+            AggregateIterable<Document> resultados = collection.aggregate(pipeline);
+
+            // Mostrar resultados
+            for (Document doc : resultados) {
+                System.out.println(doc.toJson());
+            }
+            return "ok";
     }
 
 
