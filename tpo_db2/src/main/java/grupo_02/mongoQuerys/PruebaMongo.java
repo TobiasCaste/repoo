@@ -7,13 +7,24 @@ import java.util.Arrays;
 public class PruebaMongo {
 
     public static void main(String[] args) {
-        mediciones_repository medicion= new mediciones_repository();
+        //mediciones_repository medicion= new mediciones_repository();
         //System.out.println(medicion.insertOne("1", LocalDateTime.now(),32,20.1F,"humedad",1000,10,"coruña","españa","activo"));
         //System.out.println(medicion.insertOne("1", LocalDateTime.now(),12,10.1F,"humedad",1000,10,"belgrano","argentina","activo"));
         //System.out.println(medicion.insertOne("1", LocalDateTime.now(),41,22.1F,"humedad",1000,10,"villa gessel","argentina","inactivo"));
-        System.out.println(medicion.insertOne("1", LocalDateTime.now(),10,10.1F,"humedad",1000,10,"bernal","argentina","activo"));
+        //System.out.println(medicion.insertOne("1", LocalDateTime.now(),10,10.1F,"humedad",1000,10,"bernal","argentina","activo"));
+        //medicion.info_max_and_min_temperatures_humidity(LocalDateTime.of(2025,01,01,01,00),LocalDateTime.of(2025,11,01,00,00), new ArrayList<>(Arrays.asList("ciudad","pais")),new ArrayList<>(Arrays.asList("ciudad")),new ArrayList<>(Arrays.asList("bernal")));
+        //medicion.info_average_humidity_temperatures(LocalDateTime.of(2025,01,01,01,00),LocalDateTime.of(2025,11,01,00,00),new ArrayList<>(Arrays.asList("ciudad","pais")),new ArrayList<>(Arrays.asList("ciudad")),new ArrayList<>(Arrays.asList("bernal")));
+        
+        
 
-        medicion.info_max_and_min_temperatures_humidity(LocalDateTime.of(2025,01,01,01,00),LocalDateTime.of(2025,11,01,00,00), new ArrayList<>(Arrays.asList("ciudad","pais")),new ArrayList<>(Arrays.asList("ciudad")),new ArrayList<>(Arrays.asList("bernal")));
-        medicion.info_average_humidity_temperatures(LocalDateTime.of(2025,01,01,01,00),LocalDateTime.of(2025,11,01,00,00),new ArrayList<>(Arrays.asList("ciudad","pais")),new ArrayList<>(Arrays.asList("ciudad")),new ArrayList<>(Arrays.asList("bernal")));
+        //USUARIOS
+        usuarios_repository usuariosRepository = new usuarios_repository();
+
+        System.out.println(usuariosRepository.findByEmail("ricardo.gomez@example.com"));
+        System.out.println(usuariosRepository.findByIdUsuario("u1"));
+        System.out.println(usuariosRepository.updateLastLogin("u1"));
+        System.out.println(usuariosRepository.updatePassword("u1","caca"));
+        System.out.println(usuariosRepository.hasRole("u1","Usuario"));
+        System.out.println(usuariosRepository.isActive("u20"));
     }
 }
