@@ -3,46 +3,52 @@ package grupo_02.mongoQuerys;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.*;
-import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
 import grupo_02.connectors.mongoConnector;
+import grupo_02.entities.User;
+import grupo_02.mapper.UserMapper;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
 
-public class usuarios_repository {
+@Repository
+public class UserRepository {
 
-    private MongoCollection collection;
+    // Se cambió a `MongoCollection<Document>` para tipado correcto
+    private final MongoCollection collection;
 
-    public usuarios_repository(){
+    // Se usa inyección por constructor. Spring buscará un bean 'mongoConnector' para inyectar.
+    public UserRepository() {
         mongoConnector mongoDB=new mongoConnector();
 
         collection=mongoDB.get_collection("usuarios");
     }
 
-    public String insertOne(String id_usuario, String name, String email, String password, LocalDateTime createdAt, String role) {
+    public User insertOne(User user) {
 
         try {
-            Document query = new Document().append("id_usuario", id_usuario).append("name", name).append("email", email).append("password", password).append("createdAt", createdAt).append("role", role);
+            Document userDoc = UserMapper.toDocument(user);
 
-            InsertOneResult result = collection.insertOne(query);
+            // 1. Insertar el documento. No necesitamos almacenar el InsertOneResult
+            collection.insertOne(userDoc);
 
-            return result.getInsertedId().toString();
+            // 2. CORRECCIÓN CLAVE: Devolver la entidad User mapeando el Documento 'query'.
+            // Se asume que UserMapper.toUser(Document) existe.
+            return UserMapper.toUser(userDoc);
         }
         catch (Exception e) {
             System.out.println("error type: "+ e+" at insertOne method in usuarios.java");
-            return "error";
+            // En caso de error, es mejor lanzar una excepción para que el controlador o servicio lo maneje.
+            throw new RuntimeException("Error al insertar el usuario en MongoDB", e);
         }
 
     }
 
-    public Optional<String> findByEmail(
-            String userEmail) {
+    public Optional<User> findByEmail(String userEmail) {
 
 
         // Pipeline de agregación
@@ -50,49 +56,40 @@ public class usuarios_repository {
 
                 Aggregates.match(Filters.eq("email",userEmail)),
                 Aggregates.project(Projections.fields(
-                        Projections.include("name","email","role","isActive"),
+                        Projections.include("id_usuario", "name", "email", "password", "role", "isActive", "lastLogin", "createdAt", "updatedAt"),
                         Projections.excludeId()
                 )),
                 Aggregates.limit(1)
         );
 
         // Ejecutar la agregación
-        AggregateIterable<Document> resultados = collection.aggregate(pipeline);
+        Document doc = (Document) collection.aggregate(pipeline).first();
 
-        // Mostrar resultados
-        for (Document doc : resultados) {
-            System.out.println(doc.toJson());
-            return Optional.of(doc.toJson());
-        }
-
-        return Optional.empty();
+        return Optional.ofNullable(UserMapper.toUser(doc));
     }
 
-    public Optional<String> findByIdUsuario(
-            String idUsuario) {
+    public Optional<User> findByIdUsuario(String idUsuario) {
 
-
-        // Pipeline de agregación
+        // Pipeline de agregación (mantenemos tu lógica)
         List<Bson> pipeline = Arrays.asList(
 
-                Aggregates.match(Filters.eq("id_usuario",idUsuario)),
+                Aggregates.match(Filters.eq("id_usuario", idUsuario)),
                 Aggregates.project(Projections.fields(
-                        Projections.include("name","email","role","isActive"),
-                        Projections.excludeId()
+                        // Incluye todos los campos que el mapper necesita, especialmente 'id_usuario' y fechas
+                        Projections.include("id_usuario", "name", "email", "password", "role", "isActive", "lastLogin", "createdAt", "updatedAt"),
+                        Projections.excludeId() // Mantienes esta exclusión si usas 'id_usuario' como clave
                 )),
                 Aggregates.limit(1)
         );
 
-        // Ejecutar la agregación
-        AggregateIterable<Document> resultados = collection.aggregate(pipeline);
 
-        // Mostrar resultados
-        for (Document doc : resultados) {
-            System.out.println(doc.toJson());
-            return Optional.of(doc.toJson());
+        Document doc = (Document) collection.aggregate(pipeline).first();
+
+        if (doc == null) {
+            return Optional.empty();
         }
 
-        return Optional.empty();
+        return Optional.ofNullable(UserMapper.toUser(doc));
     }
 
     public Optional<String> updateLastLogin(String idUsuario) {

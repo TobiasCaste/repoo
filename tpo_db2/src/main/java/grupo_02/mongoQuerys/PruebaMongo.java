@@ -1,8 +1,6 @@
 package grupo_02.mongoQuerys;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
+import grupo_02.connectors.mongoConnector;
 
 public class PruebaMongo {
 
@@ -18,13 +16,12 @@ public class PruebaMongo {
         
 
         //USUARIOS
-        usuarios_repository usuariosRepository = new usuarios_repository();
+        UserRepository usuariosRepository = new UserRepository();
 
-        System.out.println(usuariosRepository.findByEmail("ricardo.gomez@example.com"));
-        System.out.println(usuariosRepository.findByIdUsuario("u1"));
-        System.out.println(usuariosRepository.updateLastLogin("u1"));
-        System.out.println(usuariosRepository.updatePassword("u1","caca"));
-        System.out.println(usuariosRepository.hasRole("u1","Usuario"));
-        System.out.println(usuariosRepository.isActive("u20"));
+        System.out.println(usuariosRepository.findByEmail("andres.castillo@example.com"));
+        System.out.println(usuariosRepository.updateLastLogin("u21"));
+        System.out.println(usuariosRepository.updatePassword("u21","caca"));
+        System.out.println(usuariosRepository.hasRole("u21","Usuario"));
+        System.out.println(usuariosRepository.isActive("u21"));
     }
 }

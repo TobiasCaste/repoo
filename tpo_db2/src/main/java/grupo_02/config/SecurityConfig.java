@@ -1,57 +1,63 @@
 package grupo_02.config;
 
-import lombok.RequiredArgsConstructor;
+import grupo_02.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.List;
 
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
+    private final AuthenticationProvider authenticationProvider;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(AuthenticationService authenticationService) {
-        return new JwtAuthenticationFilter(authenticationService);
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            AuthenticationProvider authenticationProvider
+    ) {
+        this.authenticationProvider = authenticationProvider;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
     @Bean
-    public  UserDetailsService userDetailsService(UsuarioRepository usuarioRepository) {
-        return new BlogUserDetailsService(usuarioRepository);
-    }
-
-    // Configura las reglas de seguridad para las diferentes rutas de la API
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        // Rutas públicas que no requieren autenticación
-                        .requestMatchers(HttpMethod.POST,"/api/auth/**").permitAll()
-
-
-                        // Rutas exclusivas para administradores
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        // Rutas de pedidos solo para usuarios autenticados
-                        .requestMatchers("/api/pedidos/**").authenticated()
-
-                        .anyRequest().authenticated())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/hello-world").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
 
 }
