@@ -2,7 +2,7 @@ package grupo_02.controllers;
 
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("hello-world")
+@RequestMapping("/hello-world")
 @RestController
 public class HelloWorldController {
 

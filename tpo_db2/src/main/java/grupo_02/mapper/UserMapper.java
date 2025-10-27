@@ -50,8 +50,8 @@ public class UserMapper {
         return new User(
                 null, // Long: Conversión de String a Long ("id_usuario")
                 document.getString("email"),
-                document.getString("name"),
                 document.getString("password"),
+                document.getString("name"),
                 role,
                 document.getBoolean("isActive"),
                 toLocalDateTime.apply("lastLogin"),

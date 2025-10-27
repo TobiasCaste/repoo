@@ -40,6 +40,7 @@ public class AuthenticationService {
                 LocalDateTime.now()
 
         );
+        System.out.println(user.toString());
         return userRepository.insertOne(user);
     }
 
